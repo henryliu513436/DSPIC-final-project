@@ -2,32 +2,32 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-> 使用Xilinx Vivado實現的低通FIR濾波器，包含pipeline優化嘗試和能源消耗分析
+> Low-pass FIR filter implemented with Xilinx Vivado, including pipeline optimization and energy consumption analysis
 
-## 專案概述
+## Project Overview
 
-本專案設計並實現了一個32階係數的低通FIR（Finite Impulse Response）濾波器，並嘗試透過pipeline技術來優化電路性能和能源消耗。主要目標是探索如何將電路能源消耗降低至原始電路的3/4以下。
+This project designs and implements a 32-coefficient low-pass FIR (Finite Impulse Response) filter, with an attempt to optimize circuit performance and energy consumption through pipelining techniques. The main goal is to explore how to reduce circuit energy consumption to below 3/4 of the original circuit.
 
-## 功能特點
+## Features
 
-- 32階係數的低通FIR濾波器設計
-- 使用最優濾波器設計方法
-- 固定點模擬與量化誤差分析
-- Pipeline實現以嘗試優化能源消耗
-- 電路性能與能源消耗的詳細分析
+- 32-coefficient low-pass FIR filter design
+- Optimal filter design methodology
+- Fixed-point simulation and quantization error analysis
+- Pipeline implementation for energy consumption optimization
+- Detailed circuit performance and energy consumption analysis
 
-## 濾波器規格
+## Filter Specifications
 
-- **濾波器類型**：低通FIR濾波器
-- **濾波器階數**：32
-- **輸入範圍**：-1 ~ 1
-- **整數位元數**：3 bits
-- **最佳小數位元數**：18 bits
-- **MAC字長**：25 bits
+- **Filter Type**: Low-pass FIR filter
+- **Filter Order**: 32
+- **Input Range**: -1 ~ 1
+- **Integer Bits**: 3 bits
+- **Optimal Fraction Bits**: 18 bits
+- **MAC Word Length**: 25 bits
 
-## 設計實現
+## Design Implementation
 
-### 濾波器係數
+### Filter Coefficients
 
 ```
 0.002925,  0.009433, -0.003661, -0.010883, -0.001388,  0.016707,  0.010008, -0.020391,
@@ -36,68 +36,50 @@
 -0.020391,  0.010008,  0.016707, -0.001388, -0.010883, -0.003661,  0.009433,  0.002925
 ```
 
-### 頻率響應
+### Frequency Response
 
-此FIR濾波器設計展現出典型的低通特性，能有效過濾高頻信號。頻率響應圖顯示在`docs/images`目錄中。
+This FIR filter design exhibits typical low-pass characteristics, effectively filtering high-frequency signals. The frequency response plot is available in the `docs/images` directory.
 
-### 固定點模擬
+### Fixed-Point Simulation
 
-對固定點實現進行了詳細分析：
-- 輸入字長：21 bits (3 bits整數部分 + 18 bits小數部分)
-- MAC字長：25 bits
-- 通過SNR分析確定了最佳字長配置
+Detailed analysis for fixed-point implementation:
+- Input word length: 21 bits (3 bits integer + 18 bits fractional)
+- MAC word length: 25 bits
+- Optimal word length configuration determined through SNR analysis
 
-## Pipeline實現
+## Pipeline Implementation
 
-為了最小化關鍵路徑延遲，在加法器之間加入了暫存器，實現pipeline結構。這導致：
-- 輸出存在一定的延遲(latency)
-- 增加了shift register的overhead
-- 電路可以支持更高的時鐘頻率
+To minimize critical path delay, registers were inserted between adders to implement a pipeline structure. This resulted in:
+- Certain output latency
+- Increased shift register overhead
+- Circuit capability to support higher clock frequencies
 
-## 性能分析
+## Performance Analysis
 
-在50MHz時鐘約束下，比較了原始電路與pipeline電路：
-- 兩種電路均未出現時序違規(timing violation)
-- Pipeline電路使用了更多的硬體資源(尤其是flip-flops)
-- 調整供電電壓後，兩種電路的功耗都有明顯降低
+Comparison between the original circuit and pipelined circuit under 50MHz clock constraint:
+- No timing violations in either circuit
+- Pipelined circuit used more hardware resources (especially flip-flops)
+- After voltage supply adjustment, power consumption of both circuits decreased significantly
 
-## 能源消耗比較
+## Energy Consumption Comparison
 
-| 電路類型 | 典型功耗 | 調整供電後功耗 | 備註 |
+| Circuit Type | Typical Power | Power After Voltage Adjustment | Notes |
 |----------|---------|--------------|------|
-| 原始電路 | 0.156 W | 0.146 W      | 基準 |
-| Pipeline電路 | 0.158 W | 0.147 W    | 功耗略高 |
+| Original Circuit | 0.156 W | 0.146 W | Baseline |
+| Pipelined Circuit | 0.158 W | 0.147 W | Slightly higher power |
 
-> 注意：Pipeline電路雖然允許更高時鐘頻率，但因為增加的flip-flop開銷，實際功耗反而略高於原始電路。
+> Note: Although the pipelined circuit allows for higher clock frequencies, the actual power consumption is slightly higher than the original circuit due to the overhead of additional flip-flops.
 
-## 結論與未來改進
+## Conclusions and Future Improvements
 
-實驗結果顯示，雖然pipeline設計能夠提高最大運行頻率，但由於flip-flop帶來的額外開銷，未能達到減少能源消耗的預期目標。這表明在為特定FPGA優化DSP電路時，需要更全面地權衡速度、面積和功耗。
+Experimental results show that while the pipeline design can increase maximum operating frequency, it failed to achieve the expected goal of reducing energy consumption due to the additional overhead from flip-flops. This indicates that when optimizing DSP circuits for specific FPGAs, a more comprehensive trade-off between speed, area, and power is needed.
 
-未來可能的改進方向：
-- 嘗試部分pipeline以平衡延遲和資源使用
-- 探索電壓縮放與頻率縮放的最佳組合
-- 考慮其他濾波器結構，如半帶濾波器或多相濾波器
+Potential future improvements:
+- Try partial pipelining to balance delay and resource usage
+- Explore optimal combinations of voltage scaling and frequency scaling
+- Consider alternative filter structures, such as half-band filters or polyphase filters
 
-## 使用工具
+## Tools Used
 
-- Xilinx Vivado設計套件
-- MATLAB用於濾波器設計與分析
-
-## 文件結構
-
-```
-/
-├── docs/
-│   ├── images/                  # 頻率響應和輸出頻譜圖
-│   └── report.pdf              # 詳細專案報告
-├── src/
-│   ├── filter_coefficients.txt  # 濾波器係數
-│   ├── original_design.v        # 原始電路Verilog代碼
-│   └── pipeline_design.v        # Pipeline電路Verilog代碼
-├── matlab/
-│   ├── filter_design.m          # 濾波器設計MATLAB代碼
-│   └── fixed_point_sim.m        # 固定點模擬代碼
-└── README.md                   # 本文件
-```
-
+- Xilinx Vivado Design Suite
+- MATLAB for filter design and analysis
