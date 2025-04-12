@@ -1,0 +1,99 @@
+{\rtf1\ansi\ansicpg950\cocoartf2759
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww37900\viewh18440\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 `timescale 1ns / 10ps\
+\
+module tb_FIR;\
+\
+localparam CORDIC_CLK_PERlOD = 20; // To create 50 MHz CORDIC sampling clock\
+localparam FIR_CLK_PERIOD = 125000 ; // To create 8KHz FIR lowpass filter sampling clock \
+localparam signed [15:0] PI_POS = 16'h6488; // +pi in fixed-point 1.2.13\
+localparam signed [15:0] PI_NEG = 16'h9B78; // -pi in fixed-point 1.2.13\
+localparam PHASE_INC_1KHZ = 1; // Phase ]ump for 1kHz sine wave synthesis\
+localparam PHASE_INC_2KHZ = 2; // Phase jump for 2kHz sine wave synthesis \
+\
+reg cordic_clk = 1'b0;\
+reg fir_clk = 1'b0;\
+reg phase_tvalid = 1'b0;\
+reg signed [15:0] phase_1KHz = 0; // 1kHz phase sweep. 1.2.13\
+\
+reg signed [15:0] phase_2KHz = 0; // 2kHz phase sweep. 1.2.13\
+wire sincos_1KHz_tvalid;\
+wire signed [20:0] sin_1KHz, cos_1KHz; // 1.1.14 1kHz sine/cosine\
+wire sincos_2KHz_tvalid;\
+wire signed [20:0] sin_2KHz, cos_2KHz; // 2.1.24 2kHz sine/cosine\
+\
+reg signed [20:0] input_signal = 0; // Resampled 1kHz sine + 2kHz sine. 1.1.14\
+wire signed [55:0] filtered_signal; // Filtered signal output from FIR lowpass filter\
+\
+// Synthesize 1kHz sine\
+cordic_0 cordic_inst_O(\
+    .aclk                  (cordic_clk),\
+    .s_axis_phase_tvalid   (phase_tvalid),\
+    .s_axis_phase_tdata    (phase_1KHz),\
+    .m_axis_dout_tvalid    (sincos_1KHz_tvalid),\
+    .m_axis_dout_tdata     (\{sin_1KHz, cos_1KHz\})\
+);\
+\
+// Synthesize 2KHz sine\
+cordic_0 cordic_inst_1(\
+  .aclk                    (cordic_clk),\
+  .s_axis_phase_tvalid     (phase_tvalid),\
+  .s_axis_phase_tdata      (phase_2KHz),\
+  .m_axis_dout_tvalid      (sincos_2KHz_tvalid),\
+  .m_axis_dout_tdata       (\{sin_2KHz, cos_2KHz\})\
+);\
+\
+// Phase sweep\
+always @(posedge cordic_clk)\
+begin\
+  phase_tvalid <= 1'b1;\
+  // Sweep phase to synthesize 500Hz sine\
+  if (phase_1KHz + PHASE_INC_1KHZ < PI_POS) begin\
+    phase_1KHz <= phase_1KHz + PHASE_INC_1KHZ;\
+  end\
+  else\
+  begin\
+    phase_1KHz <= PI_NEG + (phase_1KHz+PHASE_INC_1KHZ - PI_POS);\
+  end\
+\
+  // Sweep phase to synthesize 2kHz sine\
+  if (phase_2KHz + PHASE_INC_2KHZ <= PI_POS) begin\
+    phase_2KHz <= phase_2KHz + PHASE_INC_2KHZ;\
+  end \
+  else \
+  begin\
+    phase_2KHz <= PI_NEG + (phase_2KHz+PHASE_INC_2KHZ - PI_POS);\
+  end\
+end \
+// Create 50MHz Cordic clock 20ns\
+always begin\
+cordic_clk = #(CORDIC_CLK_PERlOD/2) ~cordic_clk;\
+end\
+\
+    /*\
+     * 100Mhz (10ns) clock \
+     */\
+always \
+begin\
+fir_clk = #(FIR_CLK_PERIOD/2) ~fir_clk; \
+end\
+\
+always @(posedge fir_clk)\
+begin\
+// input_signal <= (sin_1KHz + sin_2KHz) / 2;\
+input_signal <= (sin_1KHz + sin_2KHz)/2;\
+end\
+\
+    /* Instantiate FIR module to test. */\
+    FIR FIR_i(\
+        .fir_clk(fir_clk),\
+        .input_signal(input_signal),  //input \
+        .filtered_signal(filtered_signal)); \
+        \
+\
+endmodule}

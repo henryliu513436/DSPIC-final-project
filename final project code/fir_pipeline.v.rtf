@@ -1,0 +1,125 @@
+{\rtf1\ansi\ansicpg950\cocoartf2759
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww18880\viewh18440\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 `timescale 1ns / 10ps\
+\
+module FIR( \
+    input fir_clk,\
+//    input rst;\
+    input signed [20:0] input_signal, \
+    output reg signed [55:0] filtered_signal //fir\uc0\u36664 \u20986 \
+\
+    );\
+    \
+    parameter wordlen=21; //18+3\
+    parameter maclen=25; //22+3\
+    parameter tap_count=32;\
+    // 32-tap FIR \
+    reg signed [wordlen-1:0] buff [0:(tap_count+tap_count-1)-1]; //for  input\
+    \
+    wire signed [20:0] tap [0:tap_count-1];\
+\
+    wire signed [(wordlen+21)-1:0] acc [0:tap_count-1];\
+    wire signed [maclen-1:0] mac_acc [0:tap_count-1];\
+    \
+    reg signed [(maclen+tap_count-3):0] sum [0:(tap_count-3)];\
+    \
+    assign tap[0]  =  21'd766;\
+    assign tap[1]  =  21'd2472;\
+    assign tap[2]  = -21'd960;\
+    assign tap[3]  = -21'd2853;\
+    assign tap[4]  = -21'd364;\
+    assign tap[5]  =  21'd4379;\
+    assign tap[6]  =  21'd2623;\
+    assign tap[7]  = -21'd5346;\
+    assign tap[8]  = -21'd6537;\
+    assign tap[9]  =  21'd4967;\
+    assign tap[10] =  21'd12566;\
+    assign tap[11] = -21'd1682;\
+    assign tap[12] = -21'd22404;\
+    assign tap[13] = -21'd9381;\
+    assign tap[14] =  21'd48562;\
+    assign tap[15] =  21'd105723;\
+    assign tap[16] =  21'd105723;\
+    assign tap[17] =  21'd48562;\
+    assign tap[18] = -21'd9381;\
+    assign tap[19] = -21'd22404;\
+    assign tap[20] = -21'd1682;\
+    assign tap[21] =  21'd12566;\
+    assign tap[22] =  21'd4967;\
+    assign tap[23] = -21'd6537;\
+    assign tap[24] = -21'd5346;\
+    assign tap[25] =  21'd2623;\
+    assign tap[26] =  21'd4379;\
+    assign tap[27] = -21'd364;\
+    assign tap[28] = -21'd2853;\
+    assign tap[29] = -21'd960;\
+    assign tap[30] =  21'd2472;\
+    assign tap[31] =  21'd766;\
+\
+    integer i;\
+    always @ (posedge fir_clk)\
+        begin\
+\
+        buff[0]<= input_signal;\
+        for(i=(tap_count+tap_count-1)-1;i>0;i=i-1) begin\
+            buff[i]<=buff[i-1];\
+         end\
+    end\
+    \
+    genvar a;\
+    generate\
+        for(a=0;a<tap_count;a=a+1) begin\
+                assign acc[a]=tap[a]*buff[a+a]; //\uc0\u25226 \u30456 \u20056 \u23436 \u30340 \u32080 \u26524 \u35037 \u36914 mac\u35041 \
+        end\
+    endgenerate\
+        \
+    genvar b;\
+    generate\
+        for(b=0;b<tap_count;b=b+1) begin\
+            assign mac_acc[b]=acc[b][(wordlen+21)-1:17]; //\uc0\u25226 \u30456 \u20056 \u23436 \u30340 \u32080 \u26524 \u35037 \u36914 mac\u35041 \
+        end\
+    endgenerate\
+    \
+    always @ (posedge fir_clk)\
+        begin\
+                    sum[0] <= mac_acc[0] + mac_acc[1]; //24\
+                    sum[1] <= mac_acc[2] + sum[0];\
+                    sum[2] <= mac_acc[3] + sum[1];\
+                    sum[3] <= mac_acc[4] + sum[2];\
+                    sum[4] <= mac_acc[5] + sum[3];\
+                    sum[5] <= mac_acc[6] + sum[4];\
+                    sum[6] <= mac_acc[7] + sum[5];\
+                    sum[7] <= mac_acc[8] + sum[6];\
+                    sum[8] <= mac_acc[9] + sum[7];\
+                    sum[9] <= mac_acc[10] + sum[8];\
+                    sum[10] <= mac_acc[11] + sum[9];\
+                    sum[11] <= mac_acc[12] + sum[10];\
+                    sum[12] <= mac_acc[13] + sum[11];\
+                    sum[13] <= mac_acc[14] + sum[12];\
+                    sum[14] <= mac_acc[15] + sum[13];\
+                    sum[15] <= mac_acc[16] + sum[14];\
+                    sum[16] <= mac_acc[17] + sum[15];\
+                    sum[17] <= mac_acc[18] + sum[16];\
+                    sum[18] <= mac_acc[19] + sum[17];\
+                    sum[19] <= mac_acc[20] + sum[18];\
+                    sum[20] <= mac_acc[21] + sum[19];\
+                    sum[21] <= mac_acc[22] + sum[20];\
+                    sum[22] <= mac_acc[23] + sum[21];\
+                    sum[23] <= mac_acc[24] + sum[22];\
+                    sum[24] <= mac_acc[25] + sum[23];\
+                    sum[25] <= mac_acc[26] + sum[24];\
+                    sum[26] <= mac_acc[27] + sum[25];\
+                    sum[27] <= mac_acc[28] + sum[26];\
+                    sum[28] <= mac_acc[29] + sum[27];\
+                    sum[29] <= mac_acc[30] + sum[28];\
+                    \
+                    filtered_signal <= sum[29] + mac_acc[31];\
+                    \
+        end\
+\
+endmodule}
